@@ -80,7 +80,7 @@
 </div>
 
 <div id="status">
-  遺構に向けて、<b>ドラッグで位置</b>・<b>2本指で大きさ</b>を合わせてください
+  <b>「石垣」をオンにして</b>実物の段と重ねると合わせやすくなります
 </div>
 
 <div id="panel" class="collapsed">
@@ -101,8 +101,13 @@
   </div>
   <div class="row">
     <label for="pitch">見上げ</label>
-    <input type="range" id="pitch" min="-30" max="40" value="-6">
-    <output id="pitch-o">-6°</output>
+    <input type="range" id="pitch" min="-15" max="45" value="7">
+    <output id="pitch-o">7°</output>
+  </div>
+  <div class="row">
+    <label for="hgt">高さ</label>
+    <input type="range" id="hgt" min="-60" max="60" value="0">
+    <output id="hgt-o">0</output>
   </div>
   <div class="row">
     <label for="sc">大きさ</label>
@@ -256,19 +261,21 @@
   for (var s2=0; s2<18; s2++) puffs.push({ t: s2/18 });
 
   // ---------- camera + transform ----------
-  var view = { azim: 0, elev: -0.105, dist: 105, tx: 4, ty: 12, tz: -14 };
+  // The viewer stands on the ground and the model's base plane is that same ground.
+  // "Look up" therefore tilts the view DIRECTION and must never move the eye itself:
+  // orbiting the camera around a raised target used to drop it several metres below ground,
+  // which is why the buildings appeared to float and showed their undersides.
+  var view = { pitch: 0.12, dist: 92, eye: 1.6 };
   var xform = { scale: 1, ox: 0, oy: 0, yaw: 0 };
   var show = { workers: true, smoke: true, stone: false };
   var FOV = 46 * Math.PI/180;
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
 
   function camBasis(W, H) {
-    var ce=Math.cos(view.elev), se=Math.sin(view.elev);
-    var ca=Math.cos(view.azim), sa=Math.sin(view.azim);
-    var pos=[view.tx+view.dist*ce*sa, view.ty+view.dist*se, view.tz+view.dist*ce*ca];
-    var f=norm([view.tx-pos[0], view.ty-pos[1], view.tz-pos[2]]);
-    var r=norm([-f[2],0,f[0]]);
-    var u=[r[1]*f[2]-r[2]*f[1], r[2]*f[0]-r[0]*f[2], r[0]*f[1]-r[1]*f[0]];
+    var pos = [0, view.eye, view.dist];
+    var f = norm([0, Math.sin(view.pitch), -Math.cos(view.pitch)]);
+    var r = norm([-f[2], 0, f[0]]);
+    var u = [r[1]*f[2]-r[2]*f[1], r[2]*f[0]-r[0]*f[2], r[0]*f[1]-r[1]*f[0]];
     return { pos:pos, f:f, r:r, u:u, F:(H/2)/Math.tan(FOV/2), W:W, H:H };
   }
 
@@ -307,12 +314,15 @@
 
     var cam = camBasis(W,H);
     var batch = [];
-    if (show.stone) batch.push(terraceFaces);
-    batch.push(buildFaces);
-    if (show.workers) batch.push(workerFaces());
+    // the stone walls exist in reality, so they are drawn only as a translucent
+    // registration guide — line them up with the real terraces, then switch them off
+    if (show.stone) batch.push({ list: terraceFaces, guide: true });
+    batch.push({ list: buildFaces });
+    if (show.workers) batch.push({ list: workerFaces() });
 
     var draw = [];
-    batch.forEach(function (list) {
+    batch.forEach(function (grp) {
+      var list = grp.list;
       for (var i=0;i<list.length;i++) {
         var face=list[i], pts=face.p, n=pts.length, vs=[], sum=0, ok=true;
         for (var j=0;j<n;j++) {
@@ -325,7 +335,7 @@
         var area=0;
         for (var k=0;k<n;k++) { var p1=vs[k],p2=vs[(k+1)%n]; area += p1[0]*p2[1]-p2[0]*p1[1]; }
         if (area >= 0) continue;
-        draw.push({ d:sum/n, v:vs, s:shade(face.c, face.n) });
+        draw.push({ d:sum/n, v:vs, s:shade(face.c, face.n), g:!!grp.guide });
       }
     });
     draw.sort(function (a,b) { return b.d - a.d; });
@@ -336,8 +346,16 @@
       ctx.moveTo(it.v[0][0], it.v[0][1]);
       for (var q=1;q<it.v.length;q++) ctx.lineTo(it.v[q][0], it.v[q][1]);
       ctx.closePath();
-      ctx.fillStyle = it.s; ctx.fill();
-      ctx.strokeStyle = it.s; ctx.lineWidth = 0.7; ctx.stroke();
+      if (it.g) {
+        ctx.globalAlpha = 0.30;
+        ctx.fillStyle = it.s; ctx.fill();
+        ctx.globalAlpha = 0.85;
+        ctx.strokeStyle = '#D98B44'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.fillStyle = it.s; ctx.fill();
+        ctx.strokeStyle = it.s; ctx.lineWidth = 0.7; ctx.stroke();
+      }
     }
 
     if (show.smoke) {
@@ -382,6 +400,8 @@
       var k = view.dist / F;
       xform.ox += (e.clientX - pts[e.pointerId].x) * k;
       xform.oy -= (e.clientY - pts[e.pointerId].y) * k;
+      els.hgt.value = Math.max(-60, Math.min(60, Math.round(xform.oy / 0.5)));
+      document.getElementById('hgt-o').textContent = els.hgt.value;
     }
     pts[e.pointerId] = { x: e.clientX, y: e.clientY };
     if (ids.length === 2 && pinchStart > 0) {
@@ -400,7 +420,8 @@
   // ---------- controls ----------
   var els = {
     op: document.getElementById('op'), yaw: document.getElementById('yaw'),
-    pitch: document.getElementById('pitch'), sc: document.getElementById('sc')
+    pitch: document.getElementById('pitch'), hgt: document.getElementById('hgt'),
+    sc: document.getElementById('sc')
   };
   els.op.addEventListener('input', function () {
     canvas.style.opacity = this.value/100;
@@ -411,8 +432,12 @@
     document.getElementById('yaw-o').textContent = this.value + '°';
   });
   els.pitch.addEventListener('input', function () {
-    view.elev = this.value * Math.PI/180;
+    view.pitch = this.value * Math.PI/180;
     document.getElementById('pitch-o').textContent = this.value + '°';
+  });
+  els.hgt.addEventListener('input', function () {
+    xform.oy = this.value * 0.5;
+    document.getElementById('hgt-o').textContent = this.value;
   });
   els.sc.addEventListener('input', function () {
     xform.scale = this.value/100;
@@ -432,12 +457,14 @@
 
   document.getElementById('b-reset').addEventListener('click', function () {
     xform = { scale: 1, ox: 0, oy: 0, yaw: 0 };
-    view.elev = -0.105;
-    els.op.value = 100; els.yaw.value = 0; els.pitch.value = -6; els.sc.value = 100;
+    view.pitch = 7 * Math.PI/180;
+    els.op.value = 100; els.yaw.value = 0; els.pitch.value = 7;
+    els.hgt.value = 0; els.sc.value = 100;
     canvas.style.opacity = 1;
     document.getElementById('op-o').textContent = '100%';
     document.getElementById('yaw-o').textContent = '0°';
-    document.getElementById('pitch-o').textContent = '-6°';
+    document.getElementById('pitch-o').textContent = '7°';
+    document.getElementById('hgt-o').textContent = '0';
     document.getElementById('sc-o').textContent = '100%';
   });
 
