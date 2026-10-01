@@ -39,7 +39,8 @@
   camera-orbit="-40deg 68deg auto" camera-target="auto auto auto"
   min-camera-orbit="auto 10deg 8m" max-camera-orbit="auto 88deg 90m"
   shadow-intensity="0" exposure="1" tone-mapping="neutral">
-  <button slot="ar-button" id="ar">ARで実寸に立てる</button>
+  <!-- 既定のARボタンは画面右下に出て下の説明帯に隠れるため使わない。下の帯に専用ボタンを置く -->
+  <div slot="ar-button" hidden></div>
 </model-viewer>
 
 <header>
@@ -52,6 +53,7 @@
     <button data-mode="center" aria-pressed="true">広場で試す</button>
     <button data-mode="kaname" aria-pressed="false">現地（要石に合わせる）</button>
   </div>
+  <button id="ar" hidden>ARで実寸に立てる</button>
   <p id="how"></p>
   <p id="status" hidden></p>
   <p id="noar" hidden>この端末ではARを起動できません。スマートフォン（iPhone の Safari／Android の Chrome）で開いてください。</p>
@@ -74,9 +76,12 @@ function setMode(m) {
 document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 setMode('center');
 
+const arBtn = document.getElementById('ar');
 mv.addEventListener('load', () => {
-  if (!mv.canActivateAR) document.getElementById('noar').hidden = false;
+  arBtn.hidden = !mv.canActivateAR;
+  document.getElementById('noar').hidden = mv.canActivateAR;
 });
+arBtn.addEventListener('click', () => mv.activateAR());
 mv.addEventListener('ar-status', e => {
   const s = document.getElementById('status');
   if (e.detail.status === 'failed') { s.hidden = false; s.textContent = 'ARを開始できませんでした。明るい場所で、地面を映しながらもう一度お試しください。'; }
