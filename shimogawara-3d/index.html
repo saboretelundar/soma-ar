@@ -32,12 +32,12 @@
 </head>
 <body>
 <model-viewer id="mv"
-  src="shimogawara-open.glb"
+  src="shimogawara-open-mini.glb"
   alt="下河原吹屋の想定復元（3Dモデル）"
   ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
   camera-controls touch-action="pan-y" interaction-prompt="none"
   camera-orbit="-35deg 62deg auto" camera-target="auto auto auto"
-  min-camera-orbit="auto 10deg 4m" max-camera-orbit="auto 88deg 90m"
+  min-camera-orbit="auto 10deg auto" max-camera-orbit="auto 88deg auto"
   shadow-intensity="0.6" exposure="1.05" tone-mapping="neutral">
   <div slot="ar-button" hidden></div>
 </model-viewer>
@@ -52,7 +52,11 @@
     <button data-mode="open" aria-pressed="true">屋根を外して中を見る</button>
     <button data-mode="roof" aria-pressed="false">屋根あり</button>
   </div>
-  <button id="ar" hidden>ARで実寸に置く</button>
+  <div class="modes" role="group" aria-label="大きさ">
+    <button data-size="mini" aria-pressed="true">模型（1/30・机の上）</button>
+    <button data-size="full" aria-pressed="false">実寸（屋外の広場）</button>
+  </div>
+  <button id="ar" hidden>ARで置く</button>
   <p id="how"></p>
   <p id="loading">読み込み中…（約8MB）</p>
   <p id="status" hidden></p>
@@ -62,18 +66,26 @@
 <script type="module">
 const mv = document.getElementById('mv');
 const MODES = {
-  open: { src: 'shimogawara-open.glb', how: '屋根を外した状態です。指で回すと作業場の様子が見えます。ARでは建屋の中心が置く点になります（12m×21.6m・実寸）。' },
-  roof: { src: 'shimogawara-roof.glb', how: '屋根のある外観です。ARでは建屋の中心が置く点になります。広い場所で、置いたあと10mほど下がると全体が見えます。' },
+  open: { file: 'shimogawara-open', how: '屋根を外した状態です。指で回すと作業場の様子が見えます。' },
+  roof: { file: 'shimogawara-roof', how: '屋根のある外観です。' },
 };
-function setMode(m) {
-  const c = MODES[m];
+const SIZES = {
+  mini: { suffix: '-mini', scale: 'auto',  how: 'ARでは1/30の模型（長さ約70cm）を机や床に置きます。2本指で拡大縮小・回転できます。' },
+  full: { suffix: '',      scale: 'fixed', how: 'ARでは実寸（12m×21.6m）で置きます。建屋の中心が置く点です。広い場所で、置いたあと10mほど下がると全体が見えます。' },
+};
+let mode = 'open', size = 'mini';
+function apply() {
+  const c = MODES[mode], s = SIZES[size];
   document.getElementById('loading').hidden = false;
-  mv.src = c.src;   // iPhone は model-viewer が GLB から USDZ を自動生成して AR Quick Look を開く
-  document.getElementById('how').textContent = c.how;
-  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
+  mv.setAttribute('ar-scale', s.scale);
+  mv.src = c.file + s.suffix + '.glb';   // iPhone/iPad は model-viewer が GLB から USDZ を自動生成して AR Quick Look を開く
+  document.getElementById('how').textContent = c.how + s.how;
+  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === mode));
+  document.querySelectorAll('[data-size]').forEach(b => b.setAttribute('aria-pressed', b.dataset.size === size));
 }
-document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
-setMode('open');
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { mode = b.dataset.mode; apply(); });
+document.querySelectorAll('[data-size]').forEach(b => b.onclick = () => { size = b.dataset.size; apply(); });
+apply();
 
 const arBtn = document.getElementById('ar');
 mv.addEventListener('load', () => {
