@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>下河原吹屋 書割AR</title>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
+<style>
+  :root { --bg:#f4efe1; --ink:#3b372c; --sub:#6b6655; --line:#cfc6ae; --accent:#9c3b26; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink);
+    font:14px/1.6 "Noto Sans JP", system-ui, sans-serif; }
+  model-viewer { position:fixed; inset:0; width:100%; height:100%; background:var(--bg); --poster-color:var(--bg); }
+  header { position:fixed; top:0; left:0; right:0; padding:12px 16px calc(8px); pointer-events:none;
+    background:linear-gradient(var(--bg) 60%, transparent); }
+  h1 { font-size:16px; margin:0; }
+  .note { font-size:12px; color:var(--sub); margin:2px 0 0; }
+  .note b { color:var(--accent); font-weight:600; }
+  footer { position:fixed; left:0; right:0; bottom:0; padding:10px 16px calc(14px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; gap:8px; align-items:stretch;
+    background:linear-gradient(transparent, var(--bg) 35%); }
+  .modes { display:flex; flex-wrap:wrap; gap:6px; }
+  .modes button { flex:1 1 30%; min-width:0; font:inherit; font-size:13px; padding:8px 6px; border-radius:6px;
+    border:1px solid var(--line); background:#fffdf7; color:var(--ink); }
+  .modes button[aria-pressed=true] { border-color:var(--ink); background:var(--ink); color:#fffdf7; }
+  #how { font-size:12px; color:var(--sub); margin:0; min-height:3.2em; }
+  #ar { font:inherit; font-size:15px; font-weight:600; padding:12px; border-radius:8px; border:none;
+    background:var(--accent); color:#fff; }
+  #noar { font-size:12px; color:var(--sub); text-align:center; margin:0; }
+  #status { font-size:12px; color:var(--accent); margin:0; }
+</style>
+</head>
+<body>
+<model-viewer id="mv"
+  src="kakiwari-center.glb?v=20261008u3" ios-src="kakiwari-center.usdz?v=20261008u3"
+  alt="下河原吹屋の想定復元（絵巻風の書割）"
+  ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
+  camera-controls touch-action="pan-y" interaction-prompt="none"
+  camera-orbit="-40deg 68deg auto" camera-target="auto auto auto"
+  min-camera-orbit="auto 10deg 8m" max-camera-orbit="auto 88deg 90m"
+  shadow-intensity="0" exposure="1" tone-mapping="neutral">
+  <!-- 既定のARボタンは画面右下に出て下の説明帯に隠れるため使わない。下の帯に専用ボタンを置く -->
+  <div slot="ar-button" hidden></div>
+</model-viewer>
+
+<header>
+  <h1>下河原吹屋 書割AR（3D由来）</h1>
+  <p class="note"><b>推測に基づく想定復元</b>であり、復元ではありません。1601〜1613年頃の吹屋を絵巻の画風で描いた板です。</p>
+</header>
+
+<footer>
+  <div class="modes" role="group" aria-label="置き方">
+    <button data-mode="center" aria-pressed="true">広場で試す</button>
+    <button data-mode="kaname" aria-pressed="false">現地（要石に合わせる）</button>
+    <button data-mode="mini" aria-pressed="false">机の上で試す（1/50）</button>
+  </div>
+  <button id="ar" hidden>ARで実寸に立てる</button>
+  <p id="how"></p>
+  <p id="status" hidden></p>
+  <p id="noar" hidden>この端末ではARを起動できません。スマートフォン（iPhone の Safari／Android の Chrome）で開いてください。</p>
+</footer>
+
+<script type="module">
+const mv = document.getElementById('mv');
+// ?v= は版の印。端末やGitHubに古い模型が残っていても新しいものを読ませる
+const V = '?v=20261008u3';
+const MODES = {
+  center: { src: 'kakiwari-center.glb', ios: 'kakiwari-center.usdz', ar: 'ARで実寸に立てる',
+    how: '建屋の中心が置かれます。12m×22m・東の軒高4.9mの実寸です。広い場所で、置いたあと後ろへ10mほど下がると全体が見えます。' },
+  kaname: { src: 'kakiwari-kaname.glb', ios: 'kakiwari-kaname.usdz', ar: 'ARで実寸に立てる',
+    how: '要石の位置が置く点になります。画面の丸印を実物の要石に合わせてタップし、2本指で回して建屋の長辺を南北に揃えてください。' },
+  mini: { src: 'kakiwari-center-1-50.glb', ios: 'kakiwari-center-1-50.usdz', ar: 'ARで机の上に置く（1/50）',
+    how: '1/50の縮尺模型です（約24cm×43cm・東の軒の高さ約10cm）。机の上に置いて、周りから見え方を確かめられます。' },
+};
+function setMode(m) {
+  const c = MODES[m];
+  mv.src = c.src + V; mv.iosSrc = c.ios + V;   // iPhone／iPad は事前に書き出した USDZ を使う
+  document.getElementById('ar').textContent = c.ar;
+  document.getElementById('how').textContent = c.how;
+  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
+}
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+setMode('center');
+
+const arBtn = document.getElementById('ar');
+mv.addEventListener('load', () => {
+  arBtn.hidden = !mv.canActivateAR;
+  document.getElementById('noar').hidden = mv.canActivateAR;
+});
+arBtn.addEventListener('click', () => mv.activateAR());
+mv.addEventListener('ar-status', e => {
+  const s = document.getElementById('status');
+  if (e.detail.status === 'failed') { s.hidden = false; s.textContent = 'ARを開始できませんでした。明るい場所で、地面を映しながらもう一度お試しください。'; }
+  else s.hidden = true;
+});
+</script>
+</body>
+</html>
