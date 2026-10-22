@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>静之窟 AR（試作）</title>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/dist/model-viewer.min.js"></script>
+<style>
+  :root { --bg:#1d1a17; --panel:#26221e; --ink:#efe8dc; --sub:#b7ad9c; --line:#4a4339; --accent:#e0a35c; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink);
+    font:14px/1.6 "Noto Sans JP", system-ui, sans-serif; }
+  model-viewer { position:fixed; inset:0; width:100%; height:100%; background:var(--bg); --poster-color:var(--bg); }
+  header { position:fixed; top:0; left:0; right:0; padding:12px 16px 18px; pointer-events:none;
+    background:linear-gradient(var(--bg) 55%, transparent); }
+  h1 { font-size:17px; margin:0; letter-spacing:.04em; }
+  h1 small { font-size:12px; color:var(--sub); font-weight:400; margin-left:6px; }
+  .note { font-size:12px; color:var(--sub); margin:3px 0 0; }
+  .note b { color:var(--accent); font-weight:600; }
+  footer { position:fixed; left:0; right:0; bottom:0; padding:10px 16px calc(14px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; gap:8px; background:linear-gradient(transparent, var(--bg) 30%);
+    max-height:70vh; overflow:auto; }
+  .modes { display:flex; gap:6px; }
+  .modes button { flex:1 1 50%; font:inherit; font-size:13px; padding:8px 6px; border-radius:6px;
+    border:1px solid var(--line); background:var(--panel); color:var(--ink); }
+  .modes button[aria-pressed=true] { border-color:var(--accent); background:var(--accent); color:#1d1a17; font-weight:600; }
+  #how { font-size:12px; color:var(--sub); margin:0; }
+  #ar { font:inherit; font-size:15px; font-weight:600; padding:12px; border-radius:8px; border:none;
+    background:var(--accent); color:#1d1a17; }
+  #noar, #status { font-size:12px; margin:0; text-align:center; }
+  #noar { color:var(--sub); } #status { color:var(--accent); }
+  details { border-top:1px solid var(--line); padding-top:6px; }
+  summary { cursor:pointer; font-size:13px; color:var(--accent); }
+  details p, details li { font-size:12.5px; color:var(--ink); margin:6px 0; }
+  details ol { padding-left:1.2em; margin:4px 0; }
+  .uta { font-family:"Noto Serif JP", "Yu Mincho", serif; font-size:15px; letter-spacing:.06em; margin:8px 0 2px; }
+  .src { color:var(--sub); font-size:11.5px; }
+  .tag { display:inline-block; font-size:11px; padding:0 6px; border-radius:4px; border:1px solid var(--line); color:var(--sub); margin-right:4px; }
+</style>
+</head>
+<body>
+<model-viewer id="mv"
+  alt="静之窟の推定模型（入口2つが奥で一つになる海食洞。奥に灯りと二つの影）"
+  ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor"
+  camera-controls touch-action="pan-y" interaction-prompt="none"
+  shadow-intensity="0" exposure="1" tone-mapping="neutral">
+  <!-- 既定のARボタンは右下に出て下の帯に隠れるため使わない（下河原ARの不具合記録 2026-10-01） -->
+  <div slot="ar-button" hidden></div>
+</model-viewer>
+
+<header>
+  <h1>静之窟<small>しずのいわや（大田市静間町）</small></h1>
+  <p class="note">入れない窟を、模型でのぞく試作です。<b>神話を事実として示すものではありません。</b>そう伝えられ、記録されてきたことを紹介します。</p>
+</header>
+
+<footer>
+  <div class="modes" role="group" aria-label="置き方">
+    <button data-mode="mini" aria-pressed="true">机の上で見る（1/100）</button>
+    <button data-mode="real" aria-pressed="false">浜で実寸に置く</button>
+  </div>
+  <button id="ar" hidden>ARで置く</button>
+  <p id="how"></p>
+  <p id="status" hidden></p>
+  <p id="noar" hidden>この端末ではARを起動できません。スマートフォン（Android の Chrome／iPhone の Safari）で開いてください。</p>
+
+  <details>
+    <summary>この窟について（出典）</summary>
+    <p class="uta">大汝　少彦名の　いましけむ　志都の石室は　幾代経にけむ</p>
+    <p class="src">万葉集 巻3-355　生石村主真人。<b>歌は「志都の石室」がどこかを言っていません。</b></p>
+    <p><span class="tag">伝え</span>大己貴命と少彦名命が、国土経営（国造り）の際に<b>仮宮とした</b>と伝えられます（石川勝貞『静之窟』1917 ほか）。
+      平田篤胤は「静」の名を、二神が国造りに巡る途中で<b>しばし静まり休んだ所</b>だからか、と解きました（『島根県史 2』1926 が『古史伝』を引く）。</p>
+    <p><span class="tag">比定</span>「ここが志都の石室だ」とされてきた順：</p>
+    <ol>
+      <li>邑智郡岩屋村（いまの邑南町）の岩屋 … 本居宣長『玉勝間』が門人の報告として紹介</li>
+      <li>静間村の窟 … 1860年代に国学者 大国隆正が探り、歌で世に紹介</li>
+      <li>1915年（大正4）地主の石川勝貞が洞内に万葉歌碑（題字 徳川家達・書 千家尊福）</li>
+      <li>1917年 石川勝貞が冊子『静之窟』を発行</li>
+    </ol>
+    <p>いまも邑南町の志都の岩屋、播磨の石の宝殿（兵庫県高砂市）と説が分かれます。</p>
+    <p><span class="tag">神社</span>式内社 静間神社は、もとこの窟の中に祀られ、延宝2年（1674）の山崩れ・洪水ののち垂水山へ遷りました。</p>
+    <p><span class="tag">現在</span>崩落の危険のため<b>立入禁止</b>です（大田市指定天然記念物）。現地では立入禁止の外で使ってください。</p>
+    <p><span class="tag">模型</span>形と寸法は大正〜昭和の記録（入口2つが奥で一つになる・奥行約40m・天井約15m）から起こした<b>推定</b>です。
+      <b>奥の灯りと二つの影は、伝承を表した想像です。</b>二柱のお姿は光と影だけで表し、顔や装いは描いていません。
+      歌碑と鳥居は大正期の写真に拠ります（現況は未確認）。</p>
+    <p class="src">出典：石川勝貞『静之窟』1917（『日本農業起源論』1942 の引用による）／『歴史写真』1918年9月号／『島根県史 2』1926／木村晩翠『石見物語』1932／『島根県神社概説』1942／しまね観光ナビ。詳しくは調査記録を参照。</p>
+  </details>
+</footer>
+
+<script type="module">
+const mv = document.getElementById('mv');
+// ?v= は版の印。端末やGitHubに古い模型が残っていても新しいものを読ませる
+const V = '?v=20261020c';
+const MODES = {
+  mini: { src: 'shizu-iwaya-1-100.glb', scale: 'auto', ar: 'ARで机の上に置く（1/100）',
+    orbit: '-25deg 55deg auto', target: '0m -0.07m 0.02m',
+    how: '崖ごと切り取り、高さ6.5mで水平に切った1/100の模型です（幅32cm・奥行51cm）。左が第一口（鳥居）、右が第二口。点線は崖の中を通る二本の通路で、奥で一つの広い洞（千畳敷）になります。奥に灯りと二つの影。' },
+  real: { src: 'shizu-iwaya-jissun.glb', scale: 'fixed', ar: 'ARで実寸に置く',
+    orbit: '0deg 78deg auto', target: 'auto auto auto',
+    how: '窟の内側だけを実寸（奥行約43m・天井約15m）で置きます。手前の壁は透けて、外から中が見えます。立入禁止の外の、開けた安全な浜で使ってください。置いた点が窟のほぼ真ん中になります。鳥居の見える側へ20mほど下がると二つの口が正面に並び、そこから歩いて中へ入れます。' },
+};
+function setMode(m) {
+  const c = MODES[m];
+  mv.src = c.src + V;
+  mv.setAttribute('ar-scale', c.scale);
+  mv.cameraOrbit = c.orbit; mv.cameraTarget = c.target;   // 下の説明帯に隠れないよう、模型を画面の上寄りに
+  document.getElementById('ar').textContent = c.ar;
+  document.getElementById('how').textContent = c.how;
+  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
+}
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+setMode('mini');
+
+const arBtn = document.getElementById('ar');
+mv.addEventListener('load', () => {
+  arBtn.hidden = !mv.canActivateAR;
+  document.getElementById('noar').hidden = mv.canActivateAR;
+});
+arBtn.addEventListener('click', () => mv.activateAR());
+mv.addEventListener('ar-status', e => {
+  const s = document.getElementById('status');
+  if (e.detail.status === 'failed') { s.hidden = false; s.textContent = 'ARを開始できませんでした。明るい場所で、地面や机を映しながらもう一度お試しください。'; }
+  else s.hidden = true;
+});
+</script>
+</body>
+</html>
